@@ -15,13 +15,17 @@ A TypeScript-first CI runner built on Bun that uses Firecracker microVMs for sec
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/zephyr.git
-cd zephyr
+# Configure npm to use GitHub Packages for @zephyr-ci scope
+echo "@zephyr-ci:registry=https://npm.pkg.github.com" >> ~/.npmrc
 
-# Install dependencies
-bun install
+# Install the CLI globally
+bun add -g @zephyr-ci/cli
+
+# Or add to your project
+bun add -D @zephyr-ci/cli @zephyr-ci/config
 ```
+
+For server deployment, see [docs/deployment.md](docs/deployment.md).
 
 ### Initialize a Project
 
