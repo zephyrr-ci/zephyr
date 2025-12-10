@@ -10,3 +10,4 @@ export {
   type GitHubEventType,
   type GitHubWebhookPayload,
 } from "./webhooks/github.ts";
+export { MetricsRegistry, ZephyrMetrics, metrics } from "./metrics/index.ts";

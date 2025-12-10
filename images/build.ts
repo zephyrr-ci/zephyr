@@ -7,8 +7,16 @@
  * 2. Creates an Alpine-based rootfs with the agent
  * 3. Downloads/builds a Linux kernel suitable for Firecracker
  *
+ * Requirements:
+ *   - Docker
+ *   - sudo access (for mounting ext4 filesystem during rootfs creation)
+ *   - mkfs.ext4 (usually in e2fsprogs package)
+ *
  * Usage:
- *   bun run images/build.ts [--rootfs] [--kernel] [--all]
+ *   bun run images/build.ts [--agent]   # Build agent binary only
+ *   bun run images/build.ts --kernel    # Download kernel only (no sudo needed)
+ *   bun run images/build.ts --rootfs    # Build rootfs (requires sudo)
+ *   bun run images/build.ts --all       # Build everything (requires sudo)
  */
 
 const IMAGES_DIR = import.meta.dir;
@@ -17,8 +25,9 @@ const ROOTFS_DIR = `${IMAGES_DIR}/rootfs`;
 const KERNELS_DIR = `${IMAGES_DIR}/kernels`;
 
 // Firecracker-compatible kernel URL (pre-built)
+// Using latest v1.13 kernel - see https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md
 const KERNEL_URL =
-  "https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.10/x86_64/vmlinux-5.10.217";
+  "https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.13/x86_64/vmlinux-6.1.141";
 
 async function buildAgent(): Promise<string> {
   console.log("Building agent binary...");
@@ -84,7 +93,7 @@ async function buildRootfs(): Promise<string> {
 
   // Create a container (don't start it)
   proc = Bun.spawn(["docker", "create", "--name", "zephyr-rootfs-temp", imageName], {
-    stdout: "pipe",
+    stdout: "inherit",
     stderr: "inherit",
   });
   exitCode = await proc.exited;
@@ -92,7 +101,7 @@ async function buildRootfs(): Promise<string> {
     // Clean up if container already exists
     await Bun.$`docker rm -f zephyr-rootfs-temp`.quiet().catch(() => {});
     proc = Bun.spawn(["docker", "create", "--name", "zephyr-rootfs-temp", imageName], {
-      stdout: "pipe",
+      stdout: "inherit",
       stderr: "inherit",
     });
     exitCode = await proc.exited;

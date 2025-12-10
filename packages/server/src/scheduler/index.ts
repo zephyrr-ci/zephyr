@@ -14,6 +14,7 @@ import {
   type Logger,
 } from "@zephyr-ci/core";
 import type { JobDefinition, ConfigContext, TriggerEvent } from "@zephyr-ci/types";
+import type { ZephyrMetrics } from "../metrics/index.ts";
 
 export interface SchedulerOptions {
   /** Database instance */
@@ -24,6 +25,8 @@ export interface SchedulerOptions {
   pollInterval?: number;
   /** Logger instance */
   logger?: Logger;
+  /** Metrics instance */
+  metrics?: ZephyrMetrics;
 }
 
 export interface QueuedPipelineRun {
@@ -45,8 +48,10 @@ export class JobScheduler {
   private maxConcurrent: number;
   private pollInterval: number;
   private logger: Logger;
+  private metrics?: ZephyrMetrics;
   private running = false;
   private activeJobs = new Map<string, Promise<void>>();
+  private jobStartTimes = new Map<string, number>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private onJobUpdate?: JobExecutionCallback;
 
@@ -55,6 +60,7 @@ export class JobScheduler {
     this.maxConcurrent = options.maxConcurrent ?? 4;
     this.pollInterval = options.pollInterval ?? 1000;
     this.logger = options.logger ?? createLogger({ prefix: "scheduler" });
+    this.metrics = options.metrics;
   }
 
   /**
@@ -151,6 +157,10 @@ export class JobScheduler {
   private async processQueue(): Promise<void> {
     if (!this.running) return;
 
+    // Update queue depth metric
+    const queueStats = this.db.countJobsByStatus();
+    this.metrics?.setQueueDepth(queueStats.pending);
+
     // Check if we have capacity
     if (this.activeJobs.size >= this.maxConcurrent) {
       return;
@@ -169,6 +179,12 @@ export class JobScheduler {
       const canRun = await this.canJobRun(job);
       if (!canRun) {
         continue;
+      }
+
+      // Track queue wait time (time from creation to start)
+      if (job.created_at) {
+        const queueWaitMs = Date.now() - job.created_at * 1000;
+        this.metrics?.jobQueueWait(queueWaitMs);
       }
 
       // Start the job
@@ -209,6 +225,8 @@ export class JobScheduler {
    */
   private async executeJob(job: JobRecord): Promise<void> {
     this.logger.info(`Starting job: ${job.name} (${job.id})`);
+    const jobStartTime = Date.now();
+    this.jobStartTimes.set(job.id, jobStartTime);
 
     // Update status to running
     const startedAt = Math.floor(Date.now() / 1000);
@@ -220,8 +238,13 @@ export class JobScheduler {
       this.db.updateJobStatus(job.id, "failure", {
         finishedAt: Math.floor(Date.now() / 1000),
       });
+      this.metrics?.jobCompleted(job.name, "unknown", "failure", Date.now() - jobStartTime);
+      this.jobStartTimes.delete(job.id);
       return;
     }
+
+    // Track job start
+    this.metrics?.jobStarted(job.name, pipelineRun.pipeline_name);
 
     // Get the project
     const project = this.db.getProject(pipelineRun.project_id);
@@ -229,6 +252,8 @@ export class JobScheduler {
       this.db.updateJobStatus(job.id, "failure", {
         finishedAt: Math.floor(Date.now() / 1000),
       });
+      this.metrics?.jobCompleted(job.name, pipelineRun.pipeline_name, "failure", Date.now() - jobStartTime);
+      this.jobStartTimes.delete(job.id);
       return;
     }
 
@@ -281,6 +306,22 @@ export class JobScheduler {
 
       this.logger.info(`Job ${job.name} completed: ${status}`);
 
+      // Track job completion metrics
+      const jobDuration = Date.now() - jobStartTime;
+      this.metrics?.jobCompleted(job.name, pipelineRun.pipeline_name, status, jobDuration);
+
+      // Track step metrics
+      for (const stepTiming of result.stepTimings) {
+        this.metrics?.stepCompleted(
+          stepTiming.name,
+          job.name,
+          stepTiming.status as "success" | "failure" | "skipped",
+          stepTiming.duration
+        );
+      }
+
+      this.jobStartTimes.delete(job.id);
+
       // Notify callback
       if (this.onJobUpdate) {
         this.onJobUpdate(job.id, status, "");
@@ -290,6 +331,11 @@ export class JobScheduler {
       this.db.updateJobStatus(job.id, "failure", {
         finishedAt: Math.floor(Date.now() / 1000),
       });
+
+      // Track job failure
+      const jobDuration = Date.now() - jobStartTime;
+      this.metrics?.jobCompleted(job.name, pipelineRun.pipeline_name, "failure", jobDuration);
+      this.jobStartTimes.delete(job.id);
 
       if (this.onJobUpdate) {
         this.onJobUpdate(job.id, "failure", err instanceof Error ? err.message : "Unknown error");

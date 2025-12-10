@@ -32,3 +32,21 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Zephyr runtime artifacts
+zephyr.db
+zephyr.db-shm
+zephyr.db-wal
+*.db
+*.db-shm
+*.db-wal
+
+# VM images (large binary files - download/build locally)
+images/kernels/vmlinux
+images/rootfs/alpine-rootfs.ext4
+images/rootfs/zephyr-agent
+images/rootfs/rootfs.tar
+images/rootfs/mnt/
+
+# Built agent binaries
+agent/zephyr-agent

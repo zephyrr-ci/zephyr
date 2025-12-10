@@ -10,6 +10,7 @@ import {
   createLogger,
 } from "@zephyr-ci/core";
 import type { JobDefinition, JobResult } from "@zephyr-ci/types";
+import type { JobRunResult } from "@zephyr-ci/core";
 
 export interface RunOptions {
   /** Working directory */
@@ -123,6 +124,7 @@ export async function run(options: RunOptions = {}): Promise<void> {
 
   // Run jobs
   const results: Record<string, JobResult> = {};
+  const jobResults: JobRunResult[] = [];
   let failed = false;
 
   for (const job of sortedJobs) {
@@ -173,6 +175,8 @@ export async function run(options: RunOptions = {}): Promise<void> {
       },
     });
 
+    jobResults.push(result);
+
     results[job.name] = {
       status: result.status,
       outputs: result.outputs,
@@ -186,25 +190,58 @@ export async function run(options: RunOptions = {}): Promise<void> {
   }
 
   // Summary
-  logger.info("─".repeat(50));
-  logger.info("Pipeline Summary:");
+  logger.info("═".repeat(60));
+  logger.info("                      PIPELINE SUMMARY");
+  logger.info("═".repeat(60));
 
-  for (const [name, result] of Object.entries(results)) {
-    const icon =
-      result.status === "success"
+  // Calculate total duration
+  const totalDuration = jobResults.reduce((sum, r) => sum + r.duration, 0);
+
+  // Print step timings
+  for (const jobResult of jobResults) {
+    const jobIcon =
+      jobResult.status === "success"
         ? "\x1b[32m✓\x1b[0m"
-        : result.status === "failure"
+        : jobResult.status === "failure"
           ? "\x1b[31m✗\x1b[0m"
           : "\x1b[33m⊘\x1b[0m";
-    logger.info(`  ${icon} ${name}: ${result.status}`);
+
+    logger.info(`\n ${jobIcon} \x1b[1m${jobResult.job}\x1b[0m (${formatDuration(jobResult.duration)})`);
+    logger.info("─".repeat(60));
+
+    for (const step of jobResult.stepTimings) {
+      const stepIcon =
+        step.status === "success"
+          ? "\x1b[32m✓\x1b[0m"
+          : step.status === "failure"
+            ? "\x1b[31m✗\x1b[0m"
+            : "\x1b[33m⊘\x1b[0m";
+      const duration = formatDuration(step.duration);
+      const padding = " ".repeat(Math.max(0, 45 - step.name.length));
+      logger.info(`   ${stepIcon} ${step.name}${padding}\x1b[2m${duration}\x1b[0m`);
+    }
   }
+
+  logger.info("");
+  logger.info("═".repeat(60));
+  logger.info(`  Total: ${formatDuration(totalDuration)}`);
+  logger.info("═".repeat(60));
 
   if (failed) {
     logger.info("");
-    logger.error("Pipeline failed");
+    logger.error("\x1b[31mPipeline failed\x1b[0m");
     process.exit(1);
   }
 
   logger.info("");
   logger.info("\x1b[32mPipeline completed successfully\x1b[0m");
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(2)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = (seconds % 60).toFixed(1);
+  return `${minutes}m ${remainingSeconds}s`;
 }

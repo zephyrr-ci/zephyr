@@ -9,6 +9,16 @@ import { VmManager, type VmInstance } from "../firecracker/manager.ts";
 import type { VmConfig } from "../firecracker/types.ts";
 import { allocateNetwork, releaseNetwork, type VmNetworkConfig } from "../network/tap.ts";
 
+/**
+ * Callback for metrics reporting
+ */
+export interface WarmPoolMetricsCallback {
+  /** Called when VM pool stats change */
+  onStatsChange?: (idle: number, active: number) => void;
+  /** Called when a VM is booted */
+  onVmBooted?: (durationMs: number) => void;
+}
+
 export interface WarmPoolOptions {
   /** VM manager instance */
   vmManager: VmManager;
@@ -28,6 +38,8 @@ export interface WarmPoolOptions {
   maxIdleTime?: number;
   /** Network interface for NAT (e.g., "eth0") */
   natInterface?: string;
+  /** Metrics callbacks */
+  metricsCallback?: WarmPoolMetricsCallback;
 }
 
 export interface DefaultVmConfig {
@@ -53,7 +65,7 @@ interface PooledVm {
 type PoolState = "starting" | "running" | "stopping" | "stopped";
 
 export class WarmPool {
-  private options: Required<Omit<WarmPoolOptions, "natInterface">> & Pick<WarmPoolOptions, "natInterface">;
+  private options: Required<Omit<WarmPoolOptions, "natInterface" | "metricsCallback">> & Pick<WarmPoolOptions, "natInterface" | "metricsCallback">;
   private idleVms: Map<string, PooledVm> = new Map();
   private inUseVms: Map<string, PooledVm> = new Map();
   private state: PoolState = "stopped";
@@ -70,6 +82,13 @@ export class WarmPool {
       maxIdleTime: options.maxIdleTime ?? 300000, // 5 minutes
       ...options,
     };
+  }
+
+  /**
+   * Report current stats to metrics callback
+   */
+  private reportStats(): void {
+    this.options.metricsCallback?.onStatsChange?.(this.idleVms.size, this.inUseVms.size);
   }
 
   /**
@@ -142,6 +161,9 @@ export class WarmPool {
       pooledVm.useCount++;
       this.inUseVms.set(id, pooledVm);
 
+      // Report stats change
+      this.reportStats();
+
       // Trigger async replenish
       this.scheduleReplenish();
 
@@ -161,6 +183,9 @@ export class WarmPool {
     pooledVm.lastUsedAt = Date.now();
     pooledVm.useCount++;
     this.inUseVms.set(pooledVm.instance.id, pooledVm);
+
+    // Report stats change
+    this.reportStats();
 
     return {
       vm: pooledVm.instance,
@@ -182,12 +207,14 @@ export class WarmPool {
     // If requested or pool is full, destroy the VM
     if (options?.destroy || this.idleVms.size >= this.options.maxIdle) {
       await this.destroyVm(vmId, false, pooledVm);
+      this.reportStats();
       return;
     }
 
     // Return to idle pool
     pooledVm.lastUsedAt = Date.now();
     this.idleVms.set(vmId, pooledVm);
+    this.reportStats();
   }
 
   /**
@@ -217,6 +244,7 @@ export class WarmPool {
    * Create a new VM for the pool
    */
   private async createVm(): Promise<PooledVm> {
+    const bootStartTime = Date.now();
     const index = this.nextIndex++;
     const id = `warm-${index}-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -260,6 +288,10 @@ export class WarmPool {
     });
 
     await this.options.vmManager.start(id);
+
+    // Report boot time metric
+    const bootDuration = Date.now() - bootStartTime;
+    this.options.metricsCallback?.onVmBooted?.(bootDuration);
 
     return {
       instance,

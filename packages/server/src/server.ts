@@ -18,6 +18,7 @@ import {
   shouldTriggerPipeline,
   type GitHubWebhookPayload,
 } from "./webhooks/github.ts";
+import { metrics, ZephyrMetrics } from "./metrics/index.ts";
 
 export interface ServerOptions {
   /** Port to listen on */
@@ -52,6 +53,7 @@ export class ZephyrServer {
   private logger: Logger;
   private server: ReturnType<typeof Bun.serve> | null = null;
   private wsClients = new Map<string, WebSocketClient>();
+  private metrics: ZephyrMetrics;
 
   constructor(options: ServerOptions = {}) {
     this.options = {
@@ -63,16 +65,21 @@ export class ZephyrServer {
 
     this.logger = options.logger ?? createLogger({ prefix: "server" });
     this.db = new ZephyrDatabase({ path: this.options.dbPath! });
+    this.metrics = metrics;
     this.scheduler = new JobScheduler({
       db: this.db,
       maxConcurrent: options.maxConcurrentJobs ?? 4,
       logger: this.logger,
+      metrics: this.metrics,
     });
 
     // Set up job update callback for WebSocket broadcasting
     this.scheduler.setJobUpdateCallback((jobId, status, logs) => {
       this.broadcastJobUpdate(jobId, status, logs);
     });
+
+    // Initialize server info metrics
+    this.metrics.setServerInfo("0.1.0", options.maxConcurrentJobs ?? 4);
   }
 
   /**
@@ -110,6 +117,7 @@ export class ZephyrServer {
             ws,
             subscriptions: new Set(),
           });
+          self.metrics.websocketConnected();
           self.logger.debug(`WebSocket client connected: ${ws.data.clientId}`);
         },
 
@@ -119,6 +127,7 @@ export class ZephyrServer {
 
         close(ws) {
           self.wsClients.delete(ws.data.clientId);
+          self.metrics.websocketDisconnected();
           self.logger.debug(`WebSocket client disconnected: ${ws.data.clientId}`);
         },
       },
@@ -151,6 +160,7 @@ export class ZephyrServer {
   private async handleRequest(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const method = req.method;
+    const startTime = Date.now();
 
     // CORS headers
     const corsHeaders = {
@@ -167,12 +177,35 @@ export class ZephyrServer {
     try {
       // Health check (no auth required)
       if (url.pathname === "/health" && method === "GET") {
-        return this.json({ status: "ok", ...this.scheduler.getStats() }, corsHeaders);
+        const response = this.json({ status: "ok", ...this.scheduler.getStats() }, corsHeaders);
+        this.metrics.httpRequest(method, url.pathname, 200, Date.now() - startTime);
+        return response;
+      }
+
+      // Prometheus metrics endpoint (no auth required)
+      if (url.pathname === "/metrics" && method === "GET") {
+        const response = new Response(this.metrics.export(), {
+          headers: {
+            "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
+            ...corsHeaders,
+          },
+        });
+        this.metrics.httpRequest(method, url.pathname, 200, Date.now() - startTime);
+        return response;
+      }
+
+      // JSON metrics endpoint for debugging
+      if (url.pathname === "/metrics/json" && method === "GET") {
+        const response = this.json(this.metrics.toJSON(), corsHeaders);
+        this.metrics.httpRequest(method, url.pathname, 200, Date.now() - startTime);
+        return response;
       }
 
       // Webhook endpoints (use webhook secret for auth)
       if (url.pathname === "/webhooks/github" && method === "POST") {
-        return this.handleGitHubWebhook(req, corsHeaders);
+        const response = await this.handleGitHubWebhook(req, corsHeaders);
+        this.metrics.httpRequest(method, url.pathname, response.status, Date.now() - startTime);
+        return response;
       }
 
       // API routes (require API key)
@@ -249,18 +282,29 @@ export class ZephyrServer {
 
         // Scheduler stats
         if (url.pathname === "/api/v1/scheduler/stats" && method === "GET") {
-          return this.json(this.scheduler.getStats(), corsHeaders);
+          const response = this.json(this.scheduler.getStats(), corsHeaders);
+          this.metrics.httpRequest(method, url.pathname, 200, Date.now() - startTime);
+          return response;
         }
+
+        // Track other API routes
+        const response = this.json({ error: "Not found" }, corsHeaders, 404);
+        this.metrics.httpRequest(method, url.pathname, 404, Date.now() - startTime);
+        return response;
       }
 
-      return this.json({ error: "Not found" }, corsHeaders, 404);
+      const response = this.json({ error: "Not found" }, corsHeaders, 404);
+      this.metrics.httpRequest(method, url.pathname, 404, Date.now() - startTime);
+      return response;
     } catch (err) {
       this.logger.error("Request error:", err);
-      return this.json(
+      const response = this.json(
         { error: err instanceof Error ? err.message : "Internal error" },
         corsHeaders,
         500
       );
+      this.metrics.httpRequest(method, url.pathname, 500, Date.now() - startTime);
+      return response;
     }
   }
 
@@ -276,6 +320,7 @@ export class ZephyrServer {
     const deliveryId = req.headers.get("X-GitHub-Delivery");
 
     if (!eventType) {
+      this.metrics.webhookReceived("github", "unknown", false);
       return this.json({ error: "Missing X-GitHub-Event header" }, corsHeaders, 400);
     }
 
@@ -284,6 +329,7 @@ export class ZephyrServer {
     // Verify signature if secret is configured
     if (this.options.githubWebhookSecret) {
       if (!verifyGitHubSignature(body, signature, this.options.githubWebhookSecret)) {
+        this.metrics.webhookReceived("github", eventType, false);
         return this.json({ error: "Invalid signature" }, corsHeaders, 401);
       }
     }
@@ -302,6 +348,7 @@ export class ZephyrServer {
     // Parse the webhook
     const parsed = parseGitHubWebhook(eventType, payload);
     if (!parsed) {
+      this.metrics.webhookReceived("github", eventType, true);
       return this.json({ message: "Event ignored" }, corsHeaders);
     }
 
@@ -312,6 +359,8 @@ export class ZephyrServer {
     this.logger.info(
       `Received GitHub ${eventType} webhook for ${parsed.repository.fullName}`
     );
+
+    this.metrics.webhookReceived("github", eventType, true);
 
     // For now, just acknowledge the webhook
     return this.json({

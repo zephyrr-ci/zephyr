@@ -34,6 +34,7 @@ export interface JobRunResult {
   steps: Record<string, StepResult>;
   outputs: Record<string, string>;
   duration: number;
+  stepTimings: Array<{ name: string; duration: number; status: string }>;
 }
 
 /**
@@ -227,6 +228,7 @@ export async function runJob(
   };
 
   const stepResults: Record<string, StepResult> = {};
+  const stepTimings: Array<{ name: string; duration: number; status: string }> = [];
   let jobFailed = false;
 
   for (const step of job.steps) {
@@ -263,15 +265,20 @@ export async function runJob(
           outputs: {},
         };
       }
+      stepTimings.push({ name: step.name, duration: 0, status: "skipped" });
       continue;
     }
 
+    const stepStart = Date.now();
     const result = await runStep(step, {
       cwd: options.cwd,
       env,
       logger,
       stepResults,
     });
+    const stepDuration = Date.now() - stepStart;
+
+    stepTimings.push({ name: step.name, duration: stepDuration, status: result.status });
 
     if (step.id) {
       stepResults[step.id] = result;
@@ -299,5 +306,6 @@ export async function runJob(
     steps: stepResults,
     outputs: {}, // Job outputs would be collected here
     duration,
+    stepTimings,
   };
 }

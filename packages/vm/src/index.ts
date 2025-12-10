@@ -42,4 +42,9 @@ export {
 export { VmExecutor, type VmExecutorOptions, type JobVmOptions } from "./executor.ts";
 
 // Warm Pool
-export { WarmPool, type WarmPoolOptions, type DefaultVmConfig } from "./pool/warm-pool.ts";
+export {
+  WarmPool,
+  type WarmPoolOptions,
+  type DefaultVmConfig,
+  type WarmPoolMetricsCallback,
+} from "./pool/warm-pool.ts";
