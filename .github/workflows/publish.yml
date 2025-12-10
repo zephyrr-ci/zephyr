@@ -19,7 +19,7 @@ on:
 jobs:
   publish:
     name: Publish to GitHub Packages
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: write
       packages: write
