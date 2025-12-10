@@ -7,8 +7,8 @@
  * - WebSocket for log streaming
  */
 
-import { ZephyrDatabase } from "@zephyr-ci/storage";
-import { createLogger, type Logger } from "@zephyr-ci/core";
+import { ZephyrDatabase } from "@zephyrr-ci/storage";
+import { createLogger, type Logger } from "@zephyrr-ci/core";
 import { JobScheduler } from "./scheduler/index.ts";
 import {
   verifyGitHubSignature,

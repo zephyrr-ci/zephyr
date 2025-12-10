@@ -2,7 +2,7 @@
  * Start the Web UI
  */
 
-import { WebUI } from "@zephyr-ci/web";
+import { WebUI } from "@zephyrr-ci/web";
 
 export interface UICommandOptions {
   /** Port to listen on */

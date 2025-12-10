@@ -6,7 +6,7 @@ import type {
   StepResult,
   JobResult,
   ConfigContext,
-} from "@zephyr-ci/types";
+} from "@zephyrr-ci/types";
 import { createLogger, type Logger } from "../utils/logger.ts";
 
 /**

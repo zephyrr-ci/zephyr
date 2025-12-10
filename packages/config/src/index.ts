@@ -3,7 +3,7 @@ import type {
   JobDefinition,
   StepDefinition,
   PipelineDefinition,
-} from "@zephyr-ci/types";
+} from "@zephyrr-ci/types";
 
 /**
  * Define a Zephyr CI configuration with full type safety.
@@ -11,7 +11,7 @@ import type {
  * @example
  * ```ts
  * // zephyr.config.ts
- * import { defineConfig } from '@zephyr-ci/config';
+ * import { defineConfig } from '@zephyrr-ci/config';
  *
  * export default defineConfig({
  *   project: {
@@ -175,4 +175,4 @@ export type {
   ConcurrencyConfig,
   RetryConfig,
   TriggerEvent,
-} from "@zephyr-ci/types";
+} from "@zephyrr-ci/types";

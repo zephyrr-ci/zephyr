@@ -9,7 +9,7 @@ import {
   matrix,
   needs,
 } from "./index";
-import type { ZephyrConfig, JobDefinition, StepDefinition, PipelineDefinition } from "@zephyr-ci/types";
+import type { ZephyrConfig, JobDefinition, StepDefinition, PipelineDefinition } from "@zephyrr-ci/types";
 
 describe("defineConfig", () => {
   test("returns config unchanged", () => {

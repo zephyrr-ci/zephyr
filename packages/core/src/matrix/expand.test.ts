@@ -7,7 +7,7 @@ import {
   getMatrixParallelism,
   hasMatrix,
 } from "./expand";
-import type { JobDefinition } from "@zephyr-ci/types";
+import type { JobDefinition } from "@zephyrr-ci/types";
 
 describe("expandMatrix", () => {
   test("returns single job instance when no matrix", () => {

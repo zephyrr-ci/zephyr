@@ -2,7 +2,7 @@ import type {
   ZephyrConfig,
   PipelineDefinition,
   ConfigContext,
-} from "@zephyr-ci/types";
+} from "@zephyrr-ci/types";
 
 const CONFIG_FILE_NAMES = ["zephyr.config.ts", "zephyr.config.js"];
 

@@ -5,7 +5,7 @@
  * Supports exclusions, inclusions, and parallel limiting.
  */
 
-import type { MatrixConfig, JobDefinition } from "@zephyr-ci/types";
+import type { MatrixConfig, JobDefinition } from "@zephyrr-ci/types";
 
 export interface MatrixCombination {
   /** Index of this combination */

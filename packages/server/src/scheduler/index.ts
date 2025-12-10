@@ -4,7 +4,7 @@
  * Manages the job queue and dispatches jobs to executors.
  */
 
-import { ZephyrDatabase, type JobRecord, type JobStatus } from "@zephyr-ci/storage";
+import { ZephyrDatabase, type JobRecord, type JobStatus } from "@zephyrr-ci/storage";
 import {
   loadConfig,
   resolvePipelines,
@@ -12,8 +12,8 @@ import {
   runJob,
   createLogger,
   type Logger,
-} from "@zephyr-ci/core";
-import type { JobDefinition, ConfigContext, TriggerEvent } from "@zephyr-ci/types";
+} from "@zephyrr-ci/core";
+import type { JobDefinition, ConfigContext, TriggerEvent } from "@zephyrr-ci/types";
 import type { ZephyrMetrics } from "../metrics/index.ts";
 
 export interface SchedulerOptions {

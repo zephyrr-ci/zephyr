@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { resolvePipelines, createDefaultContext } from "./loader";
-import type { ZephyrConfig, ConfigContext } from "@zephyr-ci/types";
+import type { ZephyrConfig, ConfigContext } from "@zephyrr-ci/types";
 
 describe("resolvePipelines", () => {
   test("returns static pipeline array", () => {

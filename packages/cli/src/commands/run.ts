@@ -8,9 +8,9 @@ import {
   createDefaultContext,
   runJob,
   createLogger,
-} from "@zephyr-ci/core";
-import type { JobDefinition, JobResult } from "@zephyr-ci/types";
-import type { JobRunResult } from "@zephyr-ci/core";
+} from "@zephyrr-ci/core";
+import type { JobDefinition, JobResult } from "@zephyrr-ci/types";
+import type { JobRunResult } from "@zephyrr-ci/core";
 
 export interface RunOptions {
   /** Working directory */

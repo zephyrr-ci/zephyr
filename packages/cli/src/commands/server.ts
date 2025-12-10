@@ -2,7 +2,7 @@
  * Start the Zephyr CI server
  */
 
-import { ZephyrServer } from "@zephyr-ci/server";
+import { ZephyrServer } from "@zephyrr-ci/server";
 
 export interface ServerCommandOptions {
   /** Port to listen on */

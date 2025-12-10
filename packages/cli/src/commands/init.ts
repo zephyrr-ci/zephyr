@@ -2,7 +2,7 @@
  * Initialize a new Zephyr config file in the current directory
  */
 
-const TEMPLATE = `import { defineConfig } from "@zephyr-ci/config";
+const TEMPLATE = `import { defineConfig } from "@zephyrr-ci/config";
 
 export default defineConfig({
   project: {

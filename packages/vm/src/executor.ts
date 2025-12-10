@@ -11,7 +11,7 @@ import {
   releaseNetwork,
   type VmNetworkConfig,
 } from "./network/tap.ts";
-import type { RunnerConfig } from "@zephyr-ci/types";
+import type { RunnerConfig } from "@zephyrr-ci/types";
 
 export interface VmExecutorOptions {
   /** Path to Firecracker binary */
