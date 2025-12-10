@@ -19,10 +19,10 @@ A TypeScript-first CI runner built on Bun that uses Firecracker microVMs for sec
 echo "@zephyr-ci:registry=https://npm.pkg.github.com" >> ~/.npmrc
 
 # Install the CLI globally
-bun add -g @zephyr-ci/cli
+bun add -g @zephyrr-ci/cli
 
 # Or add to your project
-bun add -D @zephyr-ci/cli @zephyr-ci/config
+bun add -D @zephyrr-ci/cli @zephyrr-ci/config
 ```
 
 For server deployment, see [docs/deployment.md](docs/deployment.md).
@@ -37,7 +37,7 @@ bun run zephyr init
 This creates a `zephyr.config.ts`:
 
 ```typescript
-import { defineConfig } from '@zephyr-ci/config';
+import { defineConfig } from '@zephyrr-ci/config';
 
 export default defineConfig({
   project: {
@@ -125,14 +125,14 @@ bun run zephyr ui
 
 | Package | Description |
 |---------|-------------|
-| `@zephyr-ci/cli` | Command-line interface |
-| `@zephyr-ci/core` | Config loader, executor, scheduler |
-| `@zephyr-ci/server` | HTTP API, webhooks, job queue |
-| `@zephyr-ci/vm` | Firecracker VM management |
-| `@zephyr-ci/storage` | SQLite database, caching, secrets |
-| `@zephyr-ci/web` | Web dashboard UI |
-| `@zephyr-ci/types` | TypeScript type definitions |
-| `@zephyr-ci/config` | Config helpers (`defineConfig`) |
+| `@zephyrr-ci/cli` | Command-line interface |
+| `@zephyrr-ci/core` | Config loader, executor, scheduler |
+| `@zephyrr-ci/server` | HTTP API, webhooks, job queue |
+| `@zephyrr-ci/vm` | Firecracker VM management |
+| `@zephyrr-ci/storage` | SQLite database, caching, secrets |
+| `@zephyrr-ci/web` | Web dashboard UI |
+| `@zephyrr-ci/types` | TypeScript type definitions |
+| `@zephyrr-ci/config` | Config helpers (`defineConfig`) |
 
 ## CLI Commands
 

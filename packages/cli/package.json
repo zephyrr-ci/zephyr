@@ -1,5 +1,5 @@
 {
-  "name": "@zephyr-ci/cli",
+  "name": "@zephyrr-ci/cli",
   "version": "0.1.0",
   "type": "module",
   "bin": {
@@ -18,17 +18,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@zephyr-ci/core": "workspace:*",
-    "@zephyr-ci/types": "workspace:*",
-    "@zephyr-ci/config": "workspace:*",
-    "@zephyr-ci/server": "workspace:*",
-    "@zephyr-ci/storage": "workspace:*",
-    "@zephyr-ci/web": "workspace:*"
+    "@zephyrr-ci/core": "workspace:*",
+    "@zephyrr-ci/types": "workspace:*",
+    "@zephyrr-ci/config": "workspace:*",
+    "@zephyrr-ci/server": "workspace:*",
+    "@zephyrr-ci/storage": "workspace:*",
+    "@zephyrr-ci/web": "workspace:*"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZainW/zephyr.git",
+    "url": "https://github.com/zephyrr-ci/zephyr.git",
     "directory": "packages/cli"
   },
   "keywords": ["ci", "cli", "zephyr"],

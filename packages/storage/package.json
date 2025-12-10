@@ -1,5 +1,5 @@
 {
-  "name": "@zephyr-ci/storage",
+  "name": "@zephyrr-ci/storage",
   "version": "0.1.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -15,12 +15,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@zephyr-ci/types": "workspace:*"
+    "@zephyrr-ci/types": "workspace:*"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZainW/zephyr.git",
+    "url": "https://github.com/zephyrr-ci/zephyr.git",
     "directory": "packages/storage"
   },
   "keywords": ["ci", "storage", "sqlite", "cache"],

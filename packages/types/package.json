@@ -1,5 +1,5 @@
 {
-  "name": "@zephyr-ci/types",
+  "name": "@zephyrr-ci/types",
   "version": "0.1.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -17,7 +17,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ZainW/zephyr.git",
+    "url": "https://github.com/zephyrr-ci/zephyr.git",
     "directory": "packages/types"
   },
   "keywords": ["ci", "typescript", "types"],

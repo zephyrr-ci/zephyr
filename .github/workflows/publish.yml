@@ -89,7 +89,7 @@ jobs:
                 for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
                   if (pkg[depType]) {
                     for (const [name, version] of Object.entries(pkg[depType])) {
-                      if (version === 'workspace:*' && name.startsWith('@zephyr-ci/')) {
+                      if (version === 'workspace:*' && name.startsWith('@zephyrr-ci/')) {
                         pkg[depType][name] = '$VERSION';
                       }
                     }
